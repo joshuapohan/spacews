@@ -1,4 +1,6 @@
 *
-!.rs
-!.lock
-!.toml
+!/.gitignore
+!*.rs
+!*.toml
+!*/
+target
