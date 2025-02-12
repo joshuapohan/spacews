@@ -4,7 +4,7 @@ use actix::Addr;
 use tokio::task::{self, JoinHandle};
 use tokio::time::{self, Duration, Instant};
 use crate::server::{self};
-use crate::{frame::{Drawable, Frame}, player::Player};
+use crate::game::{frame::{Drawable, Frame}, player::Player};
 
 #[derive(Debug)]
 pub struct Room{
@@ -20,7 +20,7 @@ impl Room{
     pub fn new(name: String, sever_addr: Addr<server::ChatServer>) -> Arc<Mutex<Self>> {
         let room = Self {
             name:  name,
-            last_frame: Arc::new(Mutex::new(Some(crate::frame::new_frame()))),
+            last_frame: Arc::new(Mutex::new(Some(crate::game::frame::new_frame()))),
             player1: None,
             player2: None,
             ticker_handle: None,
@@ -94,7 +94,7 @@ impl Room{
     }
 
     pub fn update_frame(&self, delta: Duration){
-        let mut new_frame = crate::frame::new_frame();
+        let mut new_frame = crate::game::frame::new_frame();
         if let Some(p1) = &self.player1 {
             p1.lock().unwrap().update(delta);
         }

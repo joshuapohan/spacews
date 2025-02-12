@@ -2,16 +2,11 @@ use actix::*;
 use actix_cors::Cors;
 use actix_web::{web, http, App, HttpServer};
 
-const NUM_COLS: usize = 20;
-const NUM_ROWS: usize = 20;
-
 mod server;
 mod routes;
 mod session;
 mod room;
-mod frame;
-mod player;
-mod shot;
+mod game;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {

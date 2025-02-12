@@ -2,7 +2,8 @@ use std::{collections::{HashMap, HashSet}, sync::{Arc, Mutex}};
 use dashmap::DashMap;
 use actix::prelude::*;
 use rand::{self, rngs::ThreadRng, Rng};
-use crate::{player::Player, room::Room};
+use crate::game::player::Player;
+use crate::room::Room;
 
 
 #[derive(Message)]
