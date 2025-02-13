@@ -47,7 +47,7 @@ pub struct ChatServer{
     sessions: HashMap<usize, Recipient<Message>>,
     rng:  ThreadRng,
     rooms: DashMap<String , HashSet<usize>>,
-    game_rooms: DashMap<String , Arc<Mutex<Room>>>,
+    game_rooms: DashMap<String , Room>,
     players: DashMap<usize, Arc<Mutex<Player>>>,
 }
 
@@ -108,11 +108,10 @@ impl Handler<Disconnect> for ChatServer {
 impl Handler<RoomMessage> for ChatServer{
     type Result = ();
      fn handle(&mut self, msg: RoomMessage, _: &mut Self::Context) -> Self::Result {
-        if let Some(game_room_guard) = self.game_rooms.get(msg.room_id.as_str()){
-            let gr_mut = game_room_guard.value();
+        if let Some(mut gr) = self.game_rooms.get_mut(msg.room_id.as_str()){
             let mut disconnect = false;
             let mut player_id :usize  = 0;
-            if let Some(p1_arc) = gr_mut.lock().unwrap().player1.clone() {
+            if let Some(p1_arc) = gr.value().player1.clone() {
                 let p1 = p1_arc.lock().unwrap();
                 match self.sessions.get(&p1.id) {
                     Some(session) => session.do_send(Message{0:msg.msg.clone()}),
@@ -124,13 +123,13 @@ impl Handler<RoomMessage> for ChatServer{
                 }
             }
             if disconnect {
-                gr_mut.lock().unwrap().disconnect_player(player_id);
+                gr.disconnect_player(player_id);
             }
 
             disconnect = false;
             player_id = 0;
 
-            if let Some(p2_arc) = gr_mut.lock().unwrap().player2.clone() {
+            if let Some(p2_arc) = gr.player2.clone() {
                 let p2 = p2_arc.lock().unwrap();
                 match self.sessions.get(&p2.id) {
                     Some(session) => session.do_send(Message{0:msg.msg.clone()}),
@@ -144,7 +143,7 @@ impl Handler<RoomMessage> for ChatServer{
             if disconnect {
                 // Room::stop_update_loop(gr_mut.clone());
                 if disconnect {
-                    gr_mut.lock().unwrap().disconnect_player(player_id);
+                    gr.disconnect_player(player_id);
                 }
             }
 
@@ -177,8 +176,7 @@ impl Handler<ClientMessage> for ChatServer {
             },
             ClientMessageType::JOIN => {
                 if let Some(player) = self.players.get(&msg.id){
-                    let game_room_binding =  self.game_rooms.entry(msg.room.clone()).or_insert(Room::new(msg.room.clone(), ctx.address()));
-                    let mut room = game_room_binding.lock().unwrap();
+                    let mut room =  self.game_rooms.entry(msg.room.clone()).or_insert(Room::new(msg.room.clone(), ctx.address()));
                     room.join(player.clone());
                 }
             },

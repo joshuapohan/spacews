@@ -7,6 +7,7 @@ mod routes;
 mod session;
 mod room;
 mod game;
+mod game_session;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
