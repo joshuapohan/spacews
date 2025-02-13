@@ -30,6 +30,12 @@ impl Player {
         }
     }
 
+    pub fn move_up(&mut self){
+        if self.y > 0 {
+            self.y -= 1;
+        }
+    }
+
     pub fn move_left(&mut self){
         if self.x > 0 {
             self.x -= 1;

@@ -1,16 +1,14 @@
-use std::ops::{Deref, DerefMut};
 use std::sync::{Arc, Mutex};
 use actix::Addr;
 use tokio::task::{self, JoinHandle};
 use tokio::time::{self, Duration, Instant};
 use crate::game_session::GameSession;
 use crate::server::{self};
-use crate::game::{frame::{Drawable, Frame}, player::Player};
+use crate::game::player::Player;
 
 #[derive(Debug)]
 pub struct Room{
     pub name: String,
-    pub last_frame: Arc<Mutex<Option<Frame>>>,
     pub player1: Option<Arc<Mutex<Player>>>,
     pub player2: Option<Arc<Mutex<Player>>>,
     pub ticker_handle: Option<JoinHandle<()>>,
@@ -22,7 +20,6 @@ impl Room{
     pub fn new(name: String, sever_addr: Addr<server::ChatServer>) -> Room {
         let room = Self {
             name:  name,
-            last_frame: Arc::new(Mutex::new(Some(crate::game::frame::new_frame()))),
             player1: None,
             player2: None,
             ticker_handle: None,
@@ -82,6 +79,7 @@ impl Room{
             player.room_id = Some(self.name.clone());
             println!("Player 1 {} joined room {} ", player.id, &self.name);
         } else if self.player2.is_none() {
+            player.lock().unwrap().move_up(); // shift player 2 up
             self.player2 = Some(player.clone());
             self.game_session.lock().unwrap().player2.replace(player.clone());
             let mut player = player.lock().unwrap();
