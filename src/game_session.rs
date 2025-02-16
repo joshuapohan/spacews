@@ -6,11 +6,20 @@ use crate::game::common::NUM_COLS;
 use crate::game::invaders::Invaders;
 use crate::game::{frame::{Drawable, Frame}, player::Player};
 
+
+pub enum GameStateType {
+    IDLE,
+    START,
+    WIN,
+    LOSE
+}
+
 pub struct GameSession{
     pub last_frame: Arc<Mutex<Option<Frame>>>,
     pub player1: Option<Arc<Mutex<Player>>>,
     pub player2: Option<Arc<Mutex<Player>>>,
-    pub invaders: Option<Arc<Mutex<Invaders>>>
+    pub invaders: Option<Arc<Mutex<Invaders>>>,
+    pub state: Arc<Mutex<GameStateType>>
 }
 
 impl fmt::Debug for GameSession {
@@ -42,6 +51,7 @@ impl GameSession{
             player1: None,
             player2: None,
             invaders: None,
+            state: Arc::new(Mutex::new(GameStateType::IDLE)),
         }
     }
     pub fn update_frame(&self, delta: Duration){
@@ -63,7 +73,18 @@ impl GameSession{
 
         if let Some(p1) = &self.player1 {
             if let Some(invaders) = &self.invaders {
-                p1.lock().unwrap().detect_hits(invaders.lock().unwrap().deref_mut());                
+                p1.lock().unwrap().detect_hits(invaders.lock().unwrap().deref_mut()); 
+            }
+        }
+
+
+        if let Some(invaders) = &self.invaders {
+            if invaders.lock().unwrap().all_killed(){
+                *self.state.lock().unwrap() = GameStateType::WIN;
+            }
+
+            if invaders.lock().unwrap().reached_bottom(){
+                *self.state.lock().unwrap() = GameStateType::LOSE;
             }
         }
         
