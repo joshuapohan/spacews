@@ -106,60 +106,15 @@ impl Handler<Disconnect> for ChatServer {
     type Result = ();
     fn handle(&mut self, msg: Disconnect, _: &mut Self::Context) -> Self::Result {
         if self.sessions.remove(&msg.id).is_some() {
+            println!("Player disconnected 1");
             for mut v in self.rooms.iter_mut() {
-                let ( name,  sessions) =  v.pair_mut();
+                let ( _name,  sessions) =  v.pair_mut();
                 if sessions.remove(&msg.id) {
 
                 }
             }
         }
     }
-}
-
-impl Handler<RoomMessage> for ChatServer{
-    type Result = ();
-     fn handle(&mut self, msg: RoomMessage, _: &mut Self::Context) -> Self::Result {
-        if let Some(mut gr) = self.game_rooms.get_mut(msg.room_id.as_str()){
-            let mut disconnect = false;
-            let mut player_id :usize  = 0;
-            if let Some(p1_arc) = gr.value().player1.clone() {
-                let p1 = p1_arc.lock().unwrap();
-                match self.sessions.get(&p1.id) {
-                    Some(session) => session.do_send(Message{0:msg.msg.clone()}),
-                    None => { 
-                        println!("Player 1 disconnected");
-                        disconnect = true;
-                        player_id = p1.id;
-                    },
-                }
-            }
-            if disconnect {
-                gr.disconnect_player(player_id);
-            }
-
-            disconnect = false;
-            player_id = 0;
-
-            if let Some(p2_arc) = gr.player2.clone() {
-                let p2 = p2_arc.lock().unwrap();
-                match self.sessions.get(&p2.id) {
-                    Some(session) => session.do_send(Message{0:msg.msg.clone()}),
-                    None => { 
-                        println!("Player 2 disconnected");
-                        disconnect = true;
-                    },
-                }
-            }
-
-            if disconnect {
-                // Room::stop_update_loop(gr_mut.clone());
-                if disconnect {
-                    gr.disconnect_player(player_id);
-                }
-            }
-
-        }
-     }
 }
 
 impl Handler<ClientMessage> for ChatServer {
@@ -169,7 +124,7 @@ impl Handler<ClientMessage> for ChatServer {
             ClientMessageType::MESSAGE(text_message) => self.send_message(&msg.room, &text_message),
             ClientMessageType::MOVEMENT(mov)=> {
                 if let Some(player) = self.players.get(&msg.id){
-                    if let Some(mut game_room) = self.game_rooms.get_mut(msg.room.as_str()){
+                    if let Some(_) = self.game_rooms.get_mut(msg.room.as_str()){
                         match mov.as_str() {
                             "-1" => {
                                 player.lock().unwrap().move_left();
@@ -198,7 +153,7 @@ impl Handler<ClientMessage> for ChatServer {
 impl Handler<GameSessionMessage> for ChatServer {
     type Result = ();
 
-    fn handle(&mut self, msg: GameSessionMessage, ctx: &mut Self::Context) -> Self::Result {
+    fn handle(&mut self, msg: GameSessionMessage, _: &mut Self::Context) -> Self::Result {
 
         match self.game_rooms.get_mut(msg.room_id.as_str()){
             Some(mut room) => {
@@ -206,11 +161,11 @@ impl Handler<GameSessionMessage> for ChatServer {
                     GameStateType::IDLE => (),
                     GameStateType::START => (),
                     GameStateType::WIN => {
-                        println!("[INFO] GAME WON Room {}", msg.room_id.as_str());
+                        println!("[INFO] GAME WON Room [{}]", msg.room_id.as_str());
                         room.stop_update_loop()
                     },
                     GameStateType::LOSE => {
-                        println!("[INFO] GAME LOST Room {}", msg.room_id.as_str());                        
+                        println!("[INFO] GAME LOST Room [{}]", msg.room_id.as_str());                        
                         room.stop_update_loop()
                     },
                 }
@@ -221,19 +176,29 @@ impl Handler<GameSessionMessage> for ChatServer {
 
                         match self.sessions.get(&msg.player1_sessionid) {
                             Some(session) => session.do_send(Message{0:res.clone()}),
-                            None => (),
+                            None => {
+                                if msg.player1_sessionid != 0 {
+                                    println!("[INFO] Room [{}] Player 1 disconnected", room.name);
+                                    room.disconnect_player(msg.player1_sessionid);
+                                }
+                            },
                         }
 
                         match self.sessions.get(&msg.player2_sessionid) {
                             Some(session) => session.do_send(Message{0:res.clone()}),
-                            None => (),
+                            None => {
+                                if msg.player2_sessionid != 0 {
+                                    println!("[INFO] Room [{}] Player 2 disconnected", room.name);
+                                    room.disconnect_player(msg.player2_sessionid);                                    
+                                }
+                            },
                         }
 
                     },
-                    Err(_) => print!("[ERROR] No frame data for room {}", msg.room_id.clone()),
+                    Err(_) => print!("[ERROR] No frame data for room [{}]", msg.room_id.clone()),
                 }
             },
-            None => println!("[ERROR] ChatServer : missing game room from message {}", msg.room_id.clone()),
+            None => println!("[ERROR] ChatServer : missing game room from message [{}]", msg.room_id.clone()),
         }
     }
 }
