@@ -24,7 +24,9 @@ pub struct GameSession{
     pub player2: Option<Arc<Mutex<Player>>>,
     pub invaders: Option<Arc<Mutex<Invaders>>>,
     pub state: Arc<RwLock<GameStateType>>,
-    pub server_addr: Addr<crate::server::ChatServer>
+    pub server_addr: Addr<crate::server::ChatServer>,
+    pub player1_sessionid: usize,
+    pub player2_sessionid: usize
 }
 
 impl fmt::Debug for GameSession {
@@ -58,6 +60,8 @@ impl GameSession{
             player1: None,
             player2: None,
             invaders: None,
+            player1_sessionid: 0,
+            player2_sessionid: 0,
             state: Arc::new(RwLock::new(GameStateType::IDLE)),
         }
     }
@@ -110,6 +114,8 @@ impl GameSession{
             frame: self.last_frame.clone(),
             room_id: self.room.clone(),
             state: self.state.read().unwrap().clone(),
+            player1_sessionid: self.player1_sessionid,
+            player2_sessionid: self.player2_sessionid
         });
     }
 }

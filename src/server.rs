@@ -49,6 +49,8 @@ pub struct GameSessionMessage {
     pub room_id: String,
     pub frame: Arc<Mutex<Option<Frame>>>,
     pub state: GameStateType,
+    pub player1_sessionid: usize,
+    pub player2_sessionid: usize
 }
 
 #[derive(Debug)]
@@ -197,6 +199,7 @@ impl Handler<GameSessionMessage> for ChatServer {
     type Result = ();
 
     fn handle(&mut self, msg: GameSessionMessage, ctx: &mut Self::Context) -> Self::Result {
+
         match self.game_rooms.get_mut(msg.room_id.as_str()){
             Some(mut room) => {
                 match msg.state {
@@ -210,6 +213,24 @@ impl Handler<GameSessionMessage> for ChatServer {
                         println!("[INFO] GAME LOST Room {}", msg.room_id.as_str());                        
                         room.stop_update_loop()
                     },
+                }
+
+                match msg.frame.lock() {
+                    Ok(frame) => {
+                        let res  = serde_json::to_string(&frame.as_deref()).unwrap();
+
+                        match self.sessions.get(&msg.player1_sessionid) {
+                            Some(session) => session.do_send(Message{0:res.clone()}),
+                            None => (),
+                        }
+
+                        match self.sessions.get(&msg.player2_sessionid) {
+                            Some(session) => session.do_send(Message{0:res.clone()}),
+                            None => (),
+                        }
+
+                    },
+                    Err(_) => print!("[ERROR] No frame data for room {}", msg.room_id.clone()),
                 }
             },
             None => println!("[ERROR] ChatServer : missing game room from message {}", msg.room_id.clone()),

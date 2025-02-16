@@ -77,6 +77,7 @@ impl Room{
         if self.player1.is_none() {
             self.player1 = Some(player.clone());
             self.game_session.lock().unwrap().player1.replace(player.clone());
+            self.game_session.lock().unwrap().player1_sessionid = player.lock().unwrap().id;
             let mut player = player.lock().unwrap();
             player.room_id = Some(self.name.clone());
             println!("Player 1 {} joined room {} ", player.id, &self.name);
@@ -84,6 +85,7 @@ impl Room{
             player.lock().unwrap().move_up(); // shift player 2 up
             self.player2 = Some(player.clone());
             self.game_session.lock().unwrap().player2.replace(player.clone());
+            self.game_session.lock().unwrap().player2_sessionid = player.lock().unwrap().id;
             let mut player = player.lock().unwrap();
             player.room_id = Some(self.name.clone());            
             println!("Player 2 {} joined room {} ", player.id, &self.name);
