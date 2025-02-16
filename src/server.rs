@@ -1,4 +1,4 @@
-use std::{collections::{HashMap, HashSet}, sync::{Arc, Mutex}};
+use std::{collections::{HashMap, HashSet}, ops::Deref, sync::{Arc, Mutex}};
 use dashmap::DashMap;
 use actix::prelude::*;
 use rand::{self, rngs::ThreadRng, Rng};
@@ -172,7 +172,7 @@ impl Handler<GameSessionMessage> for ChatServer {
 
                 match msg.frame.lock() {
                     Ok(frame) => {
-                        let res  = serde_json::to_string(&frame.as_deref()).unwrap();
+                        let res  = serde_json::to_string(frame.deref()).unwrap();
 
                         match self.sessions.get(&msg.player1_sessionid) {
                             Some(session) => session.do_send(Message{0:res.clone()}),
