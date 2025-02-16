@@ -2,12 +2,15 @@ use std::sync::{Arc, Mutex};
 use std::fmt;
 use tokio::time::Duration;
 use std::ops::{Deref, DerefMut};
+use crate::game::common::NUM_COLS;
+use crate::game::invaders::Invaders;
 use crate::game::{frame::{Drawable, Frame}, player::Player};
 
 pub struct GameSession{
     pub last_frame: Arc<Mutex<Option<Frame>>>,
     pub player1: Option<Arc<Mutex<Player>>>,
     pub player2: Option<Arc<Mutex<Player>>>,
+    pub invaders: Option<Arc<Mutex<Invaders>>>
 }
 
 impl fmt::Debug for GameSession {
@@ -26,6 +29,11 @@ impl GameSession{
                 println!()
             }
         }
+        println!();
+        for _ in 0..NUM_COLS {
+            print!("=")
+        }
+        println!();
     }
 
     pub fn new() -> GameSession{
@@ -33,26 +41,32 @@ impl GameSession{
             last_frame: Arc::new(Mutex::new(Some(crate::game::frame::new_frame()))),
             player1: None,
             player2: None,
+            invaders: None,
         }
     }
     pub fn update_frame(&self, delta: Duration){
         let mut new_frame = crate::game::frame::new_frame();
         if let Some(p1) = &self.player1 {
             p1.lock().unwrap().update(delta);
-        }
-
-        if let Some(p2) = &self.player2 {
-            p2.lock().unwrap().update(delta);
-        }
-
-        if let Some(p1) = &self.player1 {
             p1.lock().unwrap().draw(&mut new_frame);
         }
 
         if let Some(p2) = &self.player2 {
+            p2.lock().unwrap().update(delta);
             p2.lock().unwrap().draw(&mut new_frame);
         }
 
+        if let Some(invaders) = &self.invaders {
+            invaders.lock().unwrap().update(delta);
+            invaders.lock().unwrap().draw(&mut new_frame);
+        }
+
+        if let Some(p1) = &self.player1 {
+            if let Some(invaders) = &self.invaders {
+                p1.lock().unwrap().detect_hits(invaders.lock().unwrap().deref_mut());                
+            }
+        }
+        
         {
             let mut binding = self.last_frame.lock().unwrap();    
             let last_frame = binding.deref_mut();    

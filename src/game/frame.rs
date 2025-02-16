@@ -7,7 +7,7 @@ pub fn new_frame() -> Frame{
     for _ in 0..NUM_ROWS {
         let mut col = Vec::with_capacity(NUM_COLS);
         for _ in 0..NUM_COLS{
-            col.push("0");
+            col.push(" ");
         }
         cols.push(col);
     }

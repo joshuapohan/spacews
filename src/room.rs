@@ -30,9 +30,11 @@ impl Room{
     }
     
     pub fn run_game_session_update_loop(&mut self){
+        let invaders = crate::game::invaders::Invaders::new();
         let game_sesion_loop  = self.game_session.clone();
+        self.game_session.lock().unwrap().invaders = Some(Arc::new(Mutex::new(invaders)));
         let repeating_task = task::spawn(async move {
-            let mut interval = time::interval(Duration::from_millis(100));
+            let mut interval = time::interval(Duration::from_millis(2000));
             let mut instant = Instant::now();
             loop {
                 let delta = instant.elapsed();
