@@ -90,7 +90,7 @@ impl Invaders {
 
     pub fn reached_bottom(&mut self) -> bool {
         self.stop = self.army.iter().map(|invader| invader.y)
-        .max().unwrap_or(0) >= NUM_ROWS - 1;
+        .max().unwrap_or(0) >= NUM_ROWS - 2;
         self.stop
     }
 

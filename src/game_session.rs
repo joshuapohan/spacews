@@ -88,6 +88,12 @@ impl GameSession{
             }
         }
 
+        if let Some(p2) = &self.player2 {
+            if let Some(invaders) = &self.invaders {
+                p2.lock().unwrap().detect_hits(invaders.lock().unwrap().deref_mut()); 
+            }
+        }
+
 
         if let Some(invaders) = &self.invaders {
             if invaders.lock().unwrap().all_killed(){
