@@ -1,12 +1,15 @@
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, RwLock};
 use std::fmt;
+use actix::Addr;
 use tokio::time::Duration;
 use std::ops::{Deref, DerefMut};
 use crate::game::common::NUM_COLS;
 use crate::game::invaders::Invaders;
 use crate::game::{frame::{Drawable, Frame}, player::Player};
+use crate::server::GameSessionMessage;
 
 
+#[derive(Clone)]
 pub enum GameStateType {
     IDLE,
     START,
@@ -15,11 +18,13 @@ pub enum GameStateType {
 }
 
 pub struct GameSession{
+    pub room: String,
     pub last_frame: Arc<Mutex<Option<Frame>>>,
     pub player1: Option<Arc<Mutex<Player>>>,
     pub player2: Option<Arc<Mutex<Player>>>,
     pub invaders: Option<Arc<Mutex<Invaders>>>,
-    pub state: Arc<Mutex<GameStateType>>
+    pub state: Arc<RwLock<GameStateType>>,
+    pub server_addr: Addr<crate::server::ChatServer>
 }
 
 impl fmt::Debug for GameSession {
@@ -45,13 +50,15 @@ impl GameSession{
         println!();
     }
 
-    pub fn new() -> GameSession{
+    pub fn new(room: String, server_addr: Addr<crate::server::ChatServer>) -> GameSession{
         return GameSession{
+            server_addr: server_addr,
+            room: room,
             last_frame: Arc::new(Mutex::new(Some(crate::game::frame::new_frame()))),
             player1: None,
             player2: None,
             invaders: None,
-            state: Arc::new(Mutex::new(GameStateType::IDLE)),
+            state: Arc::new(RwLock::new(GameStateType::IDLE)),
         }
     }
     pub fn update_frame(&self, delta: Duration){
@@ -80,11 +87,13 @@ impl GameSession{
 
         if let Some(invaders) = &self.invaders {
             if invaders.lock().unwrap().all_killed(){
-                *self.state.lock().unwrap() = GameStateType::WIN;
+                let mut state = self.state.write().unwrap();
+                *state = GameStateType::WIN;
             }
 
             if invaders.lock().unwrap().reached_bottom(){
-                *self.state.lock().unwrap() = GameStateType::LOSE;
+                let mut state = self.state.write().unwrap();
+                *state = GameStateType::LOSE;
             }
         }
         
@@ -97,5 +106,10 @@ impl GameSession{
         //let frame_json_binding = self.last_frame.lock().unwrap();
         //let frame_json = serde_json::to_string(frame_json_binding.deref()).unwrap();
         self.render();
+        self.server_addr.do_send(GameSessionMessage{
+            frame: self.last_frame.clone(),
+            room_id: self.room.clone(),
+            state: self.state.read().unwrap().clone(),
+        });
     }
 }

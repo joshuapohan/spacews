@@ -2,7 +2,7 @@ use std::{collections::{HashMap, HashSet}, sync::{Arc, Mutex}};
 use dashmap::DashMap;
 use actix::prelude::*;
 use rand::{self, rngs::ThreadRng, Rng};
-use crate::game::player::Player;
+use crate::{game::{frame::Frame, player::Player}, game_session::GameStateType};
 use crate::room::Room;
 
 
@@ -40,6 +40,15 @@ pub struct ClientMessage {
 pub struct RoomMessage {
     pub room_id: String,
     pub msg: String,
+}
+
+
+#[derive(Message)]
+#[rtype(result= "()")]
+pub struct GameSessionMessage {
+    pub room_id: String,
+    pub frame: Arc<Mutex<Option<Frame>>>,
+    pub state: GameStateType,
 }
 
 #[derive(Debug)]
@@ -180,6 +189,30 @@ impl Handler<ClientMessage> for ChatServer {
                     room.join(player.clone());
                 }
             },
+        }
+    }
+}
+
+impl Handler<GameSessionMessage> for ChatServer {
+    type Result = ();
+
+    fn handle(&mut self, msg: GameSessionMessage, ctx: &mut Self::Context) -> Self::Result {
+        match self.game_rooms.get_mut(msg.room_id.as_str()){
+            Some(mut room) => {
+                match msg.state {
+                    GameStateType::IDLE => (),
+                    GameStateType::START => (),
+                    GameStateType::WIN => {
+                        println!("[INFO] GAME WON Room {}", msg.room_id.as_str());
+                        room.stop_update_loop()
+                    },
+                    GameStateType::LOSE => {
+                        println!("[INFO] GAME LOST Room {}", msg.room_id.as_str());                        
+                        room.stop_update_loop()
+                    },
+                }
+            },
+            None => println!("[ERROR] ChatServer : missing game room from message {}", msg.room_id.clone()),
         }
     }
 }

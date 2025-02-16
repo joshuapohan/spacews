@@ -17,14 +17,14 @@ pub struct Room{
 }
 
 impl Room{
-    pub fn new(name: String, sever_addr: Addr<server::ChatServer>) -> Room {
+    pub fn new(name: String, server_addr: Addr<server::ChatServer>) -> Room {
         let room = Self {
-            name:  name,
+            name:  name.clone(),
             player1: None,
             player2: None,
             ticker_handle: None,
-            addr: sever_addr,
-            game_session: Arc::new(Mutex::new(GameSession::new()))
+            addr: server_addr.clone(),
+            game_session: Arc::new(Mutex::new(GameSession::new(name.clone(), server_addr.clone())))
         };
         room
     }
@@ -34,7 +34,7 @@ impl Room{
         let game_sesion_loop  = self.game_session.clone();
         self.game_session.lock().unwrap().invaders = Some(Arc::new(Mutex::new(invaders)));
         let repeating_task = task::spawn(async move {
-            let mut interval = time::interval(Duration::from_millis(2000));
+            let mut interval = time::interval(Duration::from_millis(1000));
             let mut instant = Instant::now();
             loop {
                 let delta = instant.elapsed();

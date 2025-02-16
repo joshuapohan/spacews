@@ -14,6 +14,7 @@ pub struct Invaders {
     pub army: Vec<Invader>,
     move_timer: Timer,
     direction: i32,
+    stop: bool,
 }
 
 impl Invaders {
@@ -34,13 +35,17 @@ impl Invaders {
 
         Self { 
             army,
-            move_timer: Timer::from_millis(2000), 
-            direction: 1 
+            move_timer: Timer::from_millis(1000), 
+            direction: 1, 
+            stop: false
         }
     }
 
 
     pub fn update(&mut self, delta: Duration) -> bool {
+        if self.stop {
+            return true
+        }
         self.move_timer.update(delta);
         if self.move_timer.ready {
             self.move_timer.reset();
@@ -83,9 +88,10 @@ impl Invaders {
         self.army.is_empty()
     }
 
-    pub fn reached_bottom(&self) -> bool {
-        self.army.iter().map(|invader| invader.y)
-        .max().unwrap_or(0) >= NUM_ROWS - 1
+    pub fn reached_bottom(&mut self) -> bool {
+        self.stop = self.army.iter().map(|invader| invader.y)
+        .max().unwrap_or(0) >= NUM_ROWS - 1;
+        self.stop
     }
 
     pub fn kill_invader_at(&mut self, x:usize, y:usize) -> bool{
