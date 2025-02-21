@@ -58,6 +58,19 @@ impl Player {
         }
     }
 
+    pub fn handle_movement(&mut self, movement: &str) -> bool {
+        match movement {
+            "-1" => self.move_left(),
+            "1" => self.move_right(),
+            "-" => {
+                self.shoot();
+                ()
+            },
+            _ => println!("[ERROR] handle_movement invalid movement {}", movement)
+        }
+        true
+    }
+
     pub fn detect_hits(&mut self, invaders: &mut Invaders) -> bool{
         let mut any_hit = false;
         for shot in self.shots.iter_mut() {
@@ -76,6 +89,7 @@ impl Player {
         }
         self.shots.retain(|shot| !shot.dead());
     }
+    
 }
 
 impl Drawable for Player {

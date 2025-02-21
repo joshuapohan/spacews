@@ -59,21 +59,18 @@ pub struct ChatServer{
     rng:  ThreadRng,
     rooms: DashMap<String , HashSet<usize>>,
     game_rooms: DashMap<String , Room>,
-    players: DashMap<usize, Arc<Mutex<Player>>>,
 }
 
 impl ChatServer {
     pub fn new() -> ChatServer {
         let rooms = DashMap::new();
         let game_rooms = DashMap::new();
-        let players = DashMap::new();
         rooms.insert("main".to_string(), HashSet::new());
         Self {
             sessions: HashMap::new(),
             rng: rand::thread_rng(),
             rooms,
             game_rooms,
-            players,
         }
     }
 
@@ -97,7 +94,6 @@ impl Handler<Connect> for ChatServer {
     fn handle(&mut self, msg: Connect, _: &mut Self::Context) -> Self::Result {
         let id = self.rng.gen::<usize>();
         self.sessions.insert(id, msg.addr);
-        self.players.insert(id, Arc::new(Mutex::new(Player::new(id))));
         id
     }
 }
@@ -123,28 +119,13 @@ impl Handler<ClientMessage> for ChatServer {
         match msg.msg_type {
             ClientMessageType::MESSAGE(text_message) => self.send_message(&msg.room, &text_message),
             ClientMessageType::MOVEMENT(mov)=> {
-                if let Some(player) = self.players.get(&msg.id){
-                    if let Some(_) = self.game_rooms.get_mut(msg.room.as_str()){
-                        match mov.as_str() {
-                            "-1" => {
-                                player.lock().unwrap().move_left();
-                            }
-                            "1" => {
-                                player.lock().unwrap().move_right();
-                            }
-                            "-" => {
-                                player.lock().unwrap().shoot();
-                            }
-                            _ => {}
-                        }
+                    if let Some(mut room) = self.game_rooms.get_mut(msg.room.as_str()){
+                        room.handle_player_input(&msg.id, mov.as_str());
                     }
-                }
             },
             ClientMessageType::JOIN => {
-                if let Some(player) = self.players.get(&msg.id){
-                    let mut room =  self.game_rooms.entry(msg.room.clone()).or_insert(Room::new(msg.room.clone(), ctx.address()));
-                    room.join(player.clone());
-                }
+                let mut room =  self.game_rooms.entry(msg.room.clone()).or_insert(Room::new(msg.room.clone(), ctx.address()));
+                room.join(msg.id);
             },
         }
     }
