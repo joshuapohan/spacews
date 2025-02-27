@@ -110,6 +110,7 @@ impl Room{
             self.player1_session_id = session_id;
             if let Ok(mut gs) = self.game_session.lock() {
                 gs.player1.replace(player_arc.clone());
+                gs.player1_sessionid = self.player1_session_id;
             }
             println!("Player 1 {} joined room {} ", session_id, &self.name);
         } else if self.player2.is_none() {
@@ -121,6 +122,7 @@ impl Room{
             self.player2_session_id = session_id;
             if let Ok(mut gs) = self.game_session.lock() {
                 gs.player2.replace(player_arc.clone());
+                gs.player2_sessionid = self.player2_session_id;
             }
             println!("Player 2 {} joined room {} ", session_id, &self.name);
          }

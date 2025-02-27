@@ -26,7 +26,8 @@ pub struct GameSession{
     pub state: Arc<RwLock<GameStateType>>,
     pub server_addr: Addr<crate::server::ChatServer>,
     pub player1_sessionid: usize,
-    pub player2_sessionid: usize
+    pub player2_sessionid: usize,
+    pub score: usize,
 }
 
 impl fmt::Debug for GameSession {
@@ -63,9 +64,10 @@ impl GameSession{
             player1_sessionid: 0,
             player2_sessionid: 0,
             state: Arc::new(RwLock::new(GameStateType::IDLE)),
+            score: 0,
         }
     }
-    pub fn update_frame(&self, delta: Duration){
+    pub fn update_frame(&mut self, delta: Duration){
         let mut new_frame = crate::game::frame::new_frame();
         if let Some(p1) = &self.player1 {
             p1.lock().unwrap().update(delta);
@@ -84,13 +86,13 @@ impl GameSession{
 
         if let Some(p1) = &self.player1 {
             if let Some(invaders) = &self.invaders {
-                p1.lock().unwrap().detect_hits(invaders.lock().unwrap().deref_mut()); 
+                self.score += p1.lock().unwrap().detect_hits(invaders.lock().unwrap().deref_mut()); 
             }
         }
 
         if let Some(p2) = &self.player2 {
             if let Some(invaders) = &self.invaders {
-                p2.lock().unwrap().detect_hits(invaders.lock().unwrap().deref_mut()); 
+                self.score += p2.lock().unwrap().detect_hits(invaders.lock().unwrap().deref_mut()); 
             }
         }
 

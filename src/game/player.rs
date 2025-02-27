@@ -71,16 +71,16 @@ impl Player {
         true
     }
 
-    pub fn detect_hits(&mut self, invaders: &mut Invaders) -> bool{
-        let mut any_hit = false;
+    pub fn detect_hits(&mut self, invaders: &mut Invaders) -> usize{
+        let mut nb_killed = 0;
         for shot in self.shots.iter_mut() {
             if invaders.kill_invader_at(shot.x, shot.y){
-                any_hit = true;
+                nb_killed += 1;
                 shot.explode();
             }
         }
         self.shots.retain(|shot| !shot.dead());
-        any_hit
+        nb_killed        
     }
 
     pub fn update(&mut self, delta: Duration) {
