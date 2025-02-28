@@ -38,7 +38,7 @@ impl Room{
         let game_sesion_loop  = self.game_session.clone();
         self.game_session.lock().unwrap().invaders = Some(Arc::new(Mutex::new(invaders)));
         let repeating_task = task::spawn(async move {
-            let mut interval = time::interval(Duration::from_millis(1000));
+            let mut interval = time::interval(Duration::from_millis(100));
             let mut instant = Instant::now();
             loop {
                 let delta = instant.elapsed();

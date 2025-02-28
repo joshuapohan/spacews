@@ -13,6 +13,7 @@ use crate::server::GameSessionMessage;
 pub enum GameStateType {
     IDLE,
     START,
+    STOP,
     WIN,
     LOSE
 }

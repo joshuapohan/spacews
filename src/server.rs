@@ -141,12 +141,15 @@ impl Handler<GameSessionMessage> for ChatServer {
                 match msg.state {
                     GameStateType::IDLE => (),
                     GameStateType::START => (),
+                    GameStateType::STOP => {
+                        println!("[INFO] GAME STOPPED Room [{}]", msg.room_id.as_str());                        
+                    },
                     GameStateType::WIN => {
                         println!("[INFO] GAME WON Room [{}]", msg.room_id.as_str());
                         room.stop_update_loop()
                     },
                     GameStateType::LOSE => {
-                        println!("[INFO] GAME LOST Room [{}]", msg.room_id.as_str());                        
+                        println!("[INFO] GAME LOST Room [{}]", msg.room_id.as_str());
                         room.stop_update_loop()
                     },
                 }
