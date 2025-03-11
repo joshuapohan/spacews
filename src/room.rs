@@ -61,14 +61,20 @@ impl Room{
         if let Some(p1) = &self.player1 {
             if p1.lock().unwrap().id == player_id {
                 println!("Player 1 {} disconnected from  {} ", player_id, &self.name);
+                self.player1.take();
+                let mut gs = self.game_session.lock().unwrap();
+                gs.player1.take();
+                gs.player1_sessionid = 0;
             }
-            self.player1.take();
         } 
         if  let Some(p2) = &self.player2 {
             if p2.lock().unwrap().id == player_id {
                 println!("Player 2 {} disconnected from room {} ", player_id, &self.name);
+                self.player2.take();
+                let mut gs = self.game_session.lock().unwrap();
+                gs.player2.take();
+                gs.player2_sessionid = 0;
             }
-            self.player2.take();
         }
 
         if self.player1.is_none() && self.player2.is_none() {

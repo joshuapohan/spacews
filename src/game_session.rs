@@ -55,10 +55,22 @@ impl GameSession{
     }
 
     pub fn new(room: String, server_addr: Addr<crate::server::ChatServer>) -> GameSession{
-        return GameSession{
+
+        let initial_frame = Arc::new(Mutex::new(Some(crate::game::frame::new_frame())));
+
+        server_addr.do_send(GameSessionMessage{
+            frame: initial_frame.clone(),
+            room_id: room.clone(),
+            state:GameStateType::START,
+            player1_sessionid: 0,
+            player2_sessionid: 0
+        });
+
+
+        let gs =  GameSession{
             server_addr: server_addr,
-            room: room,
-            last_frame: Arc::new(Mutex::new(Some(crate::game::frame::new_frame()))),
+            room: room.clone(),
+            last_frame: initial_frame.clone(),
             player1: None,
             player2: None,
             invaders: None,
@@ -66,7 +78,9 @@ impl GameSession{
             player2_sessionid: 0,
             state: Arc::new(RwLock::new(GameStateType::IDLE)),
             score: 0,
-        }
+        };
+
+        gs
     }
     pub fn update_frame(&mut self, delta: Duration){
         let mut new_frame = crate::game::frame::new_frame();
@@ -118,7 +132,8 @@ impl GameSession{
 
         //let frame_json_binding = self.last_frame.lock().unwrap();
         //let frame_json = serde_json::to_string(frame_json_binding.deref()).unwrap();
-        self.render();
+        //self.render();
+        
         self.server_addr.do_send(GameSessionMessage{
             frame: self.last_frame.clone(),
             room_id: self.room.clone(),

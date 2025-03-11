@@ -71,7 +71,7 @@ impl Player {
         true
     }
 
-    pub fn detect_hits(&mut self, invaders: &mut Invaders) -> usize{
+pub fn detect_hits(&mut self, invaders: &mut Invaders) -> usize{
         let mut nb_killed = 0;
         for shot in self.shots.iter_mut() {
             if invaders.kill_invader_at(shot.x, shot.y){

@@ -34,15 +34,6 @@ pub struct ClientMessage {
     pub msg_type: ClientMessageType,
 }
 
-
-#[derive(Message)]
-#[rtype(result = "()")]
-pub struct RoomMessage {
-    pub room_id: String,
-    pub msg: String,
-}
-
-
 #[derive(Message)]
 #[rtype(result= "()")]
 pub struct GameSessionMessage {
@@ -50,7 +41,7 @@ pub struct GameSessionMessage {
     pub frame: Arc<Mutex<Option<Frame>>>,
     pub state: GameStateType,
     pub player1_sessionid: usize,
-    pub player2_sessionid: usize
+    pub player2_sessionid: usize,
 }
 
 #[derive(Debug)]
@@ -59,6 +50,7 @@ pub struct ChatServer{
     rng:  ThreadRng,
     rooms: DashMap<String , HashSet<usize>>,
     game_rooms: DashMap<String , Room>,
+    active_games: DashMap<String, bool>
 }
 
 impl ChatServer {
@@ -66,11 +58,13 @@ impl ChatServer {
         let rooms = DashMap::new();
         let game_rooms = DashMap::new();
         rooms.insert("main".to_string(), HashSet::new());
+        let active_games = DashMap::new();
         Self {
             sessions: HashMap::new(),
             rng: rand::thread_rng(),
             rooms,
             game_rooms,
+            active_games,
         }
     }
 
@@ -140,43 +134,72 @@ impl Handler<GameSessionMessage> for ChatServer {
             Some(mut room) => {
                 match msg.state {
                     GameStateType::IDLE => (),
-                    GameStateType::START => (),
+                    GameStateType::START => {
+                        println!("[INFO] GAME STARTED Room [{}]", msg.room_id.as_str());
+                        self.active_games.insert(msg.room_id.clone(), true);
+                        println!("[INFO] Active games count : {}", self.active_games.len());
+                        return ()
+                    },
                     GameStateType::STOP => {
-                        println!("[INFO] GAME STOPPED Room [{}]", msg.room_id.as_str());                        
+                        println!("[INFO] GAME STOPPED Room [{}]", msg.room_id.as_str());
+                        self.active_games.remove(msg.room_id.as_str());
+                        println!("[INFO] Active games count : {}", self.active_games.len());
                     },
                     GameStateType::WIN => {
                         println!("[INFO] GAME WON Room [{}]", msg.room_id.as_str());
-                        room.stop_update_loop()
+                        room.stop_update_loop();
+                        self.active_games.remove(msg.room_id.as_str());
+                        println!("[INFO] Active games count : {}", self.active_games.len());
                     },
                     GameStateType::LOSE => {
                         println!("[INFO] GAME LOST Room [{}]", msg.room_id.as_str());
-                        room.stop_update_loop()
+                        room.stop_update_loop();
+                        self.active_games.remove(msg.room_id.as_str());
+                        println!("[INFO] Active games count : {}", self.active_games.len());
                     },
                 }
 
-                match msg.frame.lock() {
+                match msg.frame.lock() {                    
                     Ok(frame) => {
+                        let mut player1_connected = false;
+                        let mut player2_connected = false;
+
                         let res  = serde_json::to_string(frame.deref()).unwrap();
 
                         match self.sessions.get(&msg.player1_sessionid) {
-                            Some(session) => session.do_send(Message{0:res.clone()}),
+                            Some(session) => {
+                                player1_connected = true;
+                                session.do_send(Message{0:res.clone()})
+                            },
                             None => {
                                 if msg.player1_sessionid != 0 {
                                     println!("[INFO] Room [{}] Player 1 disconnected", room.name);
                                     room.disconnect_player(msg.player1_sessionid);
+
                                 }
                             },
                         }
 
                         match self.sessions.get(&msg.player2_sessionid) {
-                            Some(session) => session.do_send(Message{0:res.clone()}),
+                            Some(session) => {
+                                player2_connected = true;                                
+                                session.do_send(Message{0:res.clone()});
+                            },
                             None => {
                                 if msg.player2_sessionid != 0 {
                                     println!("[INFO] Room [{}] Player 2 disconnected", room.name);
-                                    room.disconnect_player(msg.player2_sessionid);                                    
+                                    room.disconnect_player(msg.player2_sessionid);
+                                    player2_connected = false;
                                 }
                             },
                         }
+
+                        if !(player1_connected || player2_connected){
+                            println!("[INFO] GAME Room Empty [{}]", msg.room_id.as_str());
+                            self.active_games.remove(msg.room_id.as_str());
+                            println!("[INFO] Active games count : {}", self.active_games.len());
+                        }
+
 
                     },
                     Err(_) => print!("[ERROR] No frame data for room [{}]", msg.room_id.clone()),
